@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gift Number Picker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .box {
+      max-width: 450px;
+      margin: auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+    select, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 8px;
+      box-sizing: border-box;
+      font-size: 15px;
+    }
+    select {
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      background: white;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      font-weight: bold;
+      margin-top: 25px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #3d8b40;
+    }
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 25px;
+      padding: 20px;
+      background: #e8f5e9;
+      border-radius: 8px;
+      font-weight: bold;
+      text-align: center;
+      border: 2px solid #4CAF50;
+      font-size: 18px;
+    }
+    .instructions {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+      border-left: 4px solid #2196F3;
+    }
+    .error {
+      color: #d32f2f;
+      margin-top: 5px;
+      font-size: 14px;
+      display: none;
+    }
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .history {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff8e1;
+      border-radius: 5px;
+      border: 1px solid #ffd54f;
+    }
+    .history h3 {
+      margin-top: 0;
+      color: #ff9800;
+    }
+    .history-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #ffe082;
+    }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>🎁Hey fam</h2>
+    
+    <div class="instructions">
+      <strong>How it works:</strong>
+      <ol>
+        <li>Select your name from the list</li>
+        <li>Pick an available number</li>
+        <li>See who you'll be gifting</li>
+        <li>Each number corresponds to a specific person</li>
+        <li><strong>Simple one-way gifting</strong> - you gift the person whose number you pick</li>
+      </ol>
+    </div>
+
+    <label>Step 1: Who are you?</label>
+    <select id="pickerName">
+      <option value="">-- Select your name --</option>
+      <option value="Peter">Peter</option>
+      <option value="Mercy">Mercy</option>
+      <option value="Olive">Olive</option>
+      <option value="Julius">Julius</option>
+      <option value="Reachel">Reachel</option>
+      <option value="Zowie">Zowie</option>
+      <option value="martha">martha</option>
+      <option value="Sylivia">Sylivia</option>
+      <option value="Brenda">Brenda</option>
+      <option value="Caroline">Caroline</option>
+      <option value="Jordan">Jordan</option>
+      <option value="Junior">Junior</option>
+      <option value="paul">paul</option>
+    </select>
+    <div id="nameError" class="error">Please select your name</div>
+
+    <label>Step 2: Pick a Gift Number</label>
+    <select id="numberList">
+      <option value="">-- Available numbers will appear here --</option>
+    </select>
+    <div id="numberError" class="error">Please select a number</div>
+
+    <button onclick="pickNumber()" id="pickButton">Pick Number & See Result</button>
+
+    <div id="resultContainer" style="display: none;">
+      <div class="result" id="result"></div>
+    </div>
+
+    <div class="status" id="status">
+      Select your name to begin
+    </div>
+
+    <div class="history" id="historyContainer" style="display: none;">
+      <h3>📋 Picking History</h3>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <script>
+    // Fixed mapping: numbers to gift recipients
+    // Each number is permanently assigned to a person
+    const giftMap = {
+      1: "Peter",
+      2: "Mercy", 
+      3: "Olive",
+      4: "Julius",
+      5: "Reachel",
+      6: "Zowie",
+      7: "martha",
+      8: "Sylivia",
+      9: "Brenda",
+      10: "Caroline",
+      11: "Jordan",
+      12: "Junior",
+      13: "paul",
+    };
+
+    // Track which numbers have been picked and by whom
+    let pickedNumbers = [];
+    let pickingHistory = [];
+    
+    const selectBox = document.getElementById("numberList");
+    const pickerSelect = document.getElementById("pickerName");
+    const statusDiv = document.getElementById("status");
+    const historyContainer = document.getElementById("historyContainer");
+    const historyList = document.getElementById("historyList");
+
+    function updateAvailableNumbers() {
+      selectBox.innerHTML = '<option value="">-- Select a number --</option>';
+      
+      // Get all numbers that haven't been picked yet
+      const allNumbers = Object.keys(giftMap);
+      const availableNumbers = allNumbers.filter(num => !pickedNumbers.includes(num));
+      
+      if (availableNumbers.length === 0) {
+        selectBox.innerHTML = '<option value="">All numbers have been picked!</option>';
+        document.getElementById('pickButton').disabled = true;
+        statusDiv.innerHTML = "<span style='color: #d32f2f;'>🎉 All numbers have been picked! Gifting complete!</span>";
+        return;
+      }
+      
+      // Add available numbers to dropdown
+      availableNumbers.forEach(num => {
+        let option = document.createElement("option");
+        option.value = num;
+        option.textContent = `Number ${num}`;
+        selectBox.appendChild(option);
+      });
+      
+      // Update status
+      const totalNumbers = allNumbers.length;
+      const pickedCount = pickedNumbers.length;
+      statusDiv.innerHTML = `<strong>${availableNumbers.length}</strong> numbers available (${pickedCount} of ${totalNumbers} picked)`;
+    }
+
+    // When picker changes, update UI
+    pickerSelect.addEventListener('change', function() {
+      const pickerName = this.value;
+      
+      if (pickerName) {
+        // Check if this person has already picked
+        const hasAlreadyPicked = pickingHistory.some(item => item.picker === pickerName);
+        
+        if (hasAlreadyPicked) {
+          statusDiv.innerHTML = `<span style='color: #d32f2f;'>${pickerName}, you have already made your pick!</span>`;
+          selectBox.innerHTML = '<option value="">You have already picked</option>';
+          document.getElementById('pickButton').disabled = true;
+        } else {
+          updateAvailableNumbers();
+          document.getElementById('pickButton').disabled = false;
+        }
+        
+        // Show error if needed
+        document.getElementById('nameError').style.display = 'none';
+      } else {
+        selectBox.innerHTML = '<option value="">-- Available numbers will appear here --</option>';
+        statusDiv.textContent = "Select your name to begin";
+      }
+    });
+
+    function pickNumber() {
+      const picker = pickerSelect.value;
+      const chosenNumber = selectBox.value;
+
+      // Validate inputs
+      let hasError = false;
+      
+      if (!picker) {
+        document.getElementById('nameError').style.display = 'block';
+        hasError = true;
+      } else {
+        document.getElementById('nameError').style.display = 'none';
+      }
+      
+      if (!chosenNumber) {
+        document.getElementById('numberError').style.display = 'block';
+        hasError = true;
+      } else {
+        document.getElementById('numberError').style.display = 'none';
+      }
+      
+      if (hasError) return;
+
+      // Get the person to gift (based on the number picked)
+      const personToGift = giftMap[chosenNumber];
+
+      // Display result
+      document.getElementById("result").innerHTML = 
+        `🎁 <strong>${picker}</strong> picked Number ${chosenNumber}<br><br>
+         You will be gifting: <span style="color: #d32f2f; font-size: 24px;">${personToGift}</span>`;
+      document.getElementById("resultContainer").style.display = "block";
+
+      // Record this pick in history
+      pickingHistory.push({
+        picker: picker,
+        number: chosenNumber,
+        giftsTo: personToGift,
+        timestamp: new Date().toLocaleTimeString()
+      });
+
+
+      pickedNumbers.push(chosenNumber);
+      
+     
+      updateHistoryDisplay();
+      
+      // Disable the picker's name so they can't pick again
+      Array.from(pickerSelect.options).forEach(option => {
+        if (option.value === picker) {
+          option.disabled = true;
+        }
+      });
+      
+      // Reset for next person
+      pickerSelect.value = "";
+      selectBox.value = "";
+      
+      // Update available numbers
+      updateAvailableNumbers();
+    }
+
+    function updateHistoryDisplay() {
+      if (pickingHistory.length > 0) {
+        historyContainer.style.display = 'block';
+        historyList.innerHTML = '';
+        
+        pickingHistory.forEach((item, index) => {
+          const historyItem = document.createElement('div');
+          historyItem.className = 'history-item';
+          historyItem.innerHTML = `
+            <strong>${item.picker}</strong> → Number ${item.number} → Gifts <strong>${item.giftsTo}</strong>
+            <span style="float: right; color: #666; font-size: 12px;">${item.timestamp}</span>
+          `;
+          historyList.appendChild(historyItem);
+        });
+      }
+    }
+
+    
+    updateAvailableNumbers();
+  </script>
+</body>
+</html>
